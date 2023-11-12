@@ -2,7 +2,7 @@ from openai import OpenAI
 import openai
 
 def text_to_summary(content):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key='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')
 
   with open('utiles/promt.txt') as f:
       promt = "".join(f.readlines())
@@ -20,7 +20,7 @@ def text_to_summary(content):
 
 
 def text_to_summary_in_parts(content):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key='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')
 
   with open('utiles/promt.txt') as f:
     promt = "".join(f.readlines())
@@ -38,7 +38,7 @@ def text_to_summary_in_parts(content):
 
 
 def ask_question_gpt(chat_history):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key='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')
 
   with open('utiles/promt.txt') as f:
     promt = "".join(f.readlines())
