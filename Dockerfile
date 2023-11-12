@@ -1,9 +1,14 @@
 FROM python
 WORKDIR /app
-COPY requirements.txt /app
-RUN python -m pip install -r /app/requirements.txt
-
 COPY . /app
+RUN python -m pip install -r requirements.txt
+
+# Сделайте порт 5000 доступным для мира вне контейнера
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+# Определите переменные среды
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
+
+# Запустите приложение при запуске контейнера
+CMD ["flask", "run"]

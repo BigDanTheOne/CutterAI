@@ -2,8 +2,6 @@
 import os
 import fitz
 from flask import Flask, render_template, request, send_from_directory, jsonify
-from tasks import process_video
-import time
 import uuid
 import redis
 import json
