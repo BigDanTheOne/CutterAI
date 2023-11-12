@@ -1,0 +1,30 @@
+{
+
+  "manifest_version": 2,
+
+  "name": "Видео Ассистент",
+  "description": "Ассистент для работы с видео контентом",
+  "version": "1.0",
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+
+  "permissions": [
+    "activeTab"
+  ],
+
+  "background": {
+    "scripts": ["background.js"] 
+  },
+
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png" 
+  },
+
+  "default_locale": "ru"
+
+}
