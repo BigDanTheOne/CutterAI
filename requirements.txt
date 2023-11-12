@@ -28,3 +28,6 @@ urllib3==2.0.7
 vine==1.3.0
 yarg==0.1.9
 youtube-transcript-api==0.6.1
+audiosegment
+numpy
+pytorch

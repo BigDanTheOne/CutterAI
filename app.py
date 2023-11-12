@@ -28,6 +28,9 @@ PDFS_DIR = 'saved_pdf'
 
 def some_llm_function(question, text):  # Это симуляция вашей LLM функции
     # Допустим, функция выдает чанки ответа с задержкой
+
+
+
     for i in range(5):  # Предполагаем, что есть 5 чанков ответа
         yield f"Chunk {i+1} of answer for '{question}' based on '{text}'\n"
         time.sleep(1)  # Имитация задержки в вычислениях
@@ -103,6 +106,10 @@ def upload_via_link():
     url = request.json.get('url')  # Получаем URL из тела запроса
     if not url:
         return jsonify(error="No URL provided"), 400
+
+    # if 'youtube.com' in url or 'youtu.be' in url:
+    #     # Ссылка на YouTube, вызываем функцию для скачивания видео
+    #     return youtube_to_text(url, app.config['UPLOAD_FOLDER'])
 
     # Отправляем HTTP запрос на получение файла
     try:
