@@ -1,77 +1,67 @@
-const videoUrl = document.getElementById('video-url');
-const audioUrl = document.getElementById('audio-url');
-const textUrl = document.getElementById('text-url');
+// Server URL
+const serverUrl = 'http://localhost:5000'; // Replace with actual server URL
 
-const processBtn = document.getElementById('process-btn');  
-const loadAudioBtn = document.getElementById('load-audio');
-const loadTextBtn = document.getElementById('load-text');
-
-const loading = document.getElementById('loading');
-
-const videoSummary = document.getElementById('video-summary');
-const audioSummary = document.getElementById('audio-summary');  
-const textSummary = document.getElementById('text-summary');
-
-let cache = {};
-
-loadAudioBtn.addEventListener('click', () => {
-  const url = audioUrl.value;
-  fetchAudio(url); 
+// Upload File
+document.getElementById('upload-button').addEventListener('click', function() {
+  const fileInput = document.getElementById('file-input');
+  const file = fileInput.files[0];
+  if (file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    fetch(`${serverUrl}/upload`, {
+      method: 'POST',
+      body: formData
+    }).then(response => response.json())
+      .then(data => {
+        document.getElementById('status').textContent = 'Upload successful. File ID: ' + data.file_id;
+      }).catch(error => {
+        document.getElementById('status').textContent = 'Upload failed: ' + error;
+      });
+  } else {
+    document.getElementById('status').textContent = 'No file selected.';
+  }
 });
 
-loadTextBtn.addEventListener('click', () => {
-  const url = textUrl.value;
-  fetchText(url);
+// Ask Question
+document.getElementById('ask-button').addEventListener('click', function() {
+  const questionInput = document.getElementById('question-input');
+  const question = questionInput.value;
+  if (question) {
+    fetch(`${serverUrl}/ask-question`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ question: question })
+    }).then(response => response.json())
+      .then(data => {
+        document.getElementById('status').innerHTML = 'Answer: ' + data.answer;
+      }).catch(error => {
+        document.getElementById('status').textContent = 'Error: ' + error;
+      });
+  } else {
+    document.getElementById('status').textContent = 'Please enter a question.';
+  }
 });
 
-processBtn.addEventListener('click', () => {
-  loading.style.display = 'block';
-
-  const videoUrl = videoUrl.value;
-  fetchData(videoUrl); 
-});
-
-function fetchAudio(url) {
-  fetch('/process-audio', {
-    method: 'POST', 
-    body: JSON.stringify({url})
-  })
-  .then(r => r.json())
-  .then(data => {
-    audioSummary.innerText = data.summary;
-  });
-}
-
-function fetchText(url) {
-  fetch('/process-text', {
-    method: 'POST',
-    body: JSON.stringify({url})  
-  })
-  .then(r => r.json())
-  .then(data => {
-    textSummary.innerText = data.summary;
-  });
-} 
-
-function fetchData(videoUrl) {
-  fetch('/process', {
-    method: 'POST',
-    body: JSON.stringify({videoUrl})
-  })
-  .then(response => response.json())
-  .then(data => {
-
-    videoSummary.innerText = data.video.summary;
-    audioSummary.innerText = data.audio.summary;
-    textSummary.innerText = data.text.summary;
-
-    if(!data.video.summary) {
-      alert('Не удалось сгенерировать резюме видео');
+// Get Chat History
+document.getElementById('get-history-button').addEventListener('click', function() {
+  chrome.storage.local.get(['user_id'], function(result) {
+    if (result.user_id) {
+      fetch(`${serverUrl}/get-chat-history`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'user_id': result.user_id // Assuming 'user_id' is sent as a header
+        }
+      }).then(response => response.json())
+        .then(data => {
+          document.getElementById('status').textContent = 'Chat History: ' + JSON.stringify(data);
+        }).catch(error => {
+          document.getElementById('status').textContent = 'Error retrieving history: ' + error;
+        });
+    } else {
+      document.getElementById('status').textContent = 'No user_id found.';
     }
-
-    cache[videoUrl] = data;
-    
-    loading.style.display = 'none';
-
   });
-}
+});

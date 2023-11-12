@@ -1,39 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>CtrAi</title>
-  <link rel="stylesheet" href="popup.css"> 
+  <title>CutterAI Chat</title>
+  <link rel="stylesheet" type="text/css" href="popup.css">
 </head>
-
 <body>
-
-  <input id="video-url" type="text" placeholder="Ссылка на видео">
-  
-  <input id="audio-url" type="text" placeholder="Ссылка на аудио">
-  <button id="load-audio">Загрузить аудио</button>
-
-  <input id="text-url" type="text" placeholder="Ссылка на текст">
-  <button id="load-text">Загрузить текст</button>
-
-  <button id="process-btn">Обработать</button>
-
-  <div id="loading">Идет обработка...</div>
-
-  <div id="result">
-  
-    <p>Видео резюме:</p>
-    <p id="video-summary"></p>
-
-    <p>Аудио резюме:</p>
-    <p id="audio-summary"></p>
-
-    <p>Текстовое резюме:</p>
-    <p id="text-summary"></p>
-
+  <div id="container">
+    <h1>CutterAI Chat Extension</h1>
+    <input type="file" id="file-input">
+    <button id="upload-button">Upload File</button>
+    <input type="text" id="question-input" placeholder="Ask your question">
+    <button id="ask-button">Ask Question</button>
+    <button id="get-history-button">Get Chat History</button>
+    <div id="status"></div>
   </div>
-
   <script src="popup.js"></script>
-
 </body>
 </html>

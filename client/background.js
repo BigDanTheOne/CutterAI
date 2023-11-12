@@ -1,11 +1,8 @@
-browser.runtime.onInstalled.addListener(() => {
- 
-});
-
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-   
-});
-
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  
+chrome.runtime.onInstalled.addListener(function() {
+  fetch('http://localhost:5000/', { // Replace with actual server URL
+    method: 'GET'
+  }).then(response => response.text())
+    .then(user_id => {
+      chrome.storage.local.set({ user_id: user_id });
+    });
 });
