@@ -1,7 +1,7 @@
 FROM python
 WORKDIR /app
 COPY requirements.txt /app
-RUN python -m pip install -r requirements.txt
+RUN python -m pip install -r /app/requirements.txt
 
 COPY . /app
 EXPOSE 5000
