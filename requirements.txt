@@ -30,4 +30,4 @@ yarg==0.1.9
 youtube-transcript-api==0.6.1
 audiosegment
 numpy
-pytorch
+

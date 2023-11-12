@@ -20,9 +20,7 @@ def text_to_summary(content):
 
 
 def text_to_summary_in_parts(content):
-  collected_chunks = []
-  collected_messages = []
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key='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')
 
   with open('utiles/promt.txt') as f:
     promt = "".join(f.readlines())
@@ -36,9 +34,19 @@ def text_to_summary_in_parts(content):
     temperature=0,
     stream=True
   )
-  for chunk in response:
-    collected_chunks.append(chunk)  # save the event response
-    chunk_message = chunk['choices'][0]['delta']  # extract the message
-    collected_messages.append(chunk_message)  # save the message
-  full_reply_content = ''.join([m.get('content', '') for m in collected_messages])
-  return full_reply_content
+  return response
+
+
+def ask_question_gpt(chat_history):
+  client = OpenAI(api_key='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')
+
+  with open('utiles/promt.txt') as f:
+    promt = "".join(f.readlines())
+
+  response = client.chat.completions.create(
+    model="gpt-3.5-turbo-1106",
+    messages=chat_history,
+    temperature=0,
+    stream=True
+  )
+  return response

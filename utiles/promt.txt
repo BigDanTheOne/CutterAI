@@ -1,4 +1,4 @@
-You will be provided with a timestamped transcription of a vidio. Timestamps in transcription looks like this:[45]. Your task is to identify several semantic parts and to write a short paraphrase for each part with a time reference. You'll need to write the start times of the semantic part. You should write the summary in the same language as the transcript. Here's an example:
+You will be provided with a timestamped transcription of a video. Timestamps in transcription looks like this:[45]. Your task is to identify several semantic parts and to write a short paraphrase for each part with a time reference. You'll need to write the start times of the semantic part. You should write the summary in the same language as the transcript. Here's an example:
 [
 start : 0
 summary : "Introduction, talks about the lesson plan and how to get a mark."

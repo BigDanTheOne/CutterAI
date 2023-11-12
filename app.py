@@ -8,6 +8,7 @@ import json
 from werkzeug.utils import secure_filename
 import requests
 import time
+from utiles.summary import text_to_summary_in_parts, ask_question_gpt
 
 # Настройка подключения к Redis
 redis_host = "localhost"  # или адрес удаленного сервера Redis
@@ -18,8 +19,6 @@ r = redis.StrictRedis(host=redis_host, port=redis_port, password=redis_password,
 app = Flask(__name__)
 
 
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_VIDEO'] = ''
 app.config['UPLOAD_FOLDER'] = 'uploads/'  # Папка для сохранения файлов
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'mp4', 'mp3', 'wav', 'jpg', 'jpeg', 'png', 'gif'}  # Разрешенные расширения
@@ -42,7 +41,7 @@ def save_message_to_chat_history(user_id, file_id, message):
 
 
 def get_chat_history(user_id, file_id):
-    chat_id = f"chat_{user_id}_{file_id}"  # Уникальный ID для чата
+    chat_id = f"chat:{user_id}:{file_id}"  # Уникальный ID для чата
     if r.exists(chat_id):
         messages = r.lrange(chat_id, 0, -1)  # Получаем все сообщения из списка Redis
         return [json.loads(message) for message in messages]  # Десериализуем каждое сообщение
@@ -145,7 +144,7 @@ def ask_question():
 
     if get_chat_history(user_id, file_id) is None:
 
-        filepath = os.path.join(PDFS_DIR, str(file_id) + '.pdf')
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], str(file_id) + '.pdf')
         if not os.path.exists(filepath):
             return jsonify({"error": "File not found"}), 404
 
@@ -158,17 +157,54 @@ def ask_question():
         doc.close()
         save_message_to_chat_history(user_id, file_id, {"role": "system", "content": "Answer questions based on this document: \n" + text}) #TODO: refine prompt
 
-    def generate():  # Создаем генератор для потоковой передачи
-        response = ""
-        for chunk in some_llm_function(question, chat_history, file_id):
-            response += chunk
-            yield chunk  # Yield the LLM function output chunk by chunk
-        save_message_to_chat_history(user_id, file_id, {"role": "assistant", "content": response})
-
     # Используем LLM для ответа на вопрос, основываясь на тексте
     chat_history = get_chat_history(user_id, file_id)
-    answer = some_llm_function(question, chat_history, file_id)  # Замените на вызов вашей LLM функции
     save_message_to_chat_history(user_id, file_id, {"role": "user", "content": question})
+    chat_history = get_chat_history(user_id, file_id)
+
+
+    def generate():  # Создаем генератор для потоковой передачи
+        collected_messages = []
+        for chunk in ask_question_gpt(chat_history):
+            chunk_message = chunk.choices[0].delta.content # extract the message
+            if chunk_message:
+                collected_messages.append(chunk_message)  # save the message
+            elif chunk_message is None and len(full_reply_content) != 0:
+                save_message_to_chat_history(user_id, file_id, {"role": "assistant",
+                        "content": '' if len(collected_messages) == 0 else ''.join([m for m in collected_messages])})
+            full_reply_content = '' if len(collected_messages) == 0 else ''.join([m for m in collected_messages])
+            yield full_reply_content
+
+    return Response(generate(), content_type='text/plain')  # Используем Response для стриминга ответа
+
+
+
+
+@app.route('/summarize', methods=['GET'])
+def summarize():
+    file_id = request.args.get('file_id')
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], str(file_id) + '.pdf')
+    if not os.path.exists(filepath):
+        return jsonify({"error": "File not found"}), 404
+
+    # Открываем указанный PDF-файл
+    doc = fitz.open(filepath)
+    # Читаем текст из PDF
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    doc.close()
+
+    def generate():  # Создаем генератор для потоковой передачи
+        collected_messages = []
+        for chunk in text_to_summary_in_parts(text):
+            chunk_message = chunk.choices[0].delta.content # extract the message
+            if chunk_message:
+                collected_messages.append(chunk_message)  # save the message
+            full_reply_content = '' if len(collected_messages) == 0 else ''.join([m for m in collected_messages])
+            yield full_reply_content
+
     return Response(generate(), content_type='text/plain')  # Используем Response для стриминга ответа
 
 
