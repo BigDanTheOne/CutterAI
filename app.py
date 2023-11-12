@@ -1,13 +1,13 @@
 # app.py
 import os
 import fitz
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, make_response, session, Response
 import uuid
 import redis
 import json
 from werkzeug.utils import secure_filename
 import requests
-
+import time
 
 # Настройка подключения к Redis
 redis_host = "localhost"  # или адрес удаленного сервера Redis
@@ -26,8 +26,11 @@ app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'mp4', 'mp3', 'wav', 'jpg', 'jpeg', '
 PDFS_DIR = 'saved_pdf'
 
 
-def some_llm_function(question, chat_history, file_id):
-    return
+def some_llm_function(question, text):  # Это симуляция вашей LLM функции
+    # Допустим, функция выдает чанки ответа с задержкой
+    for i in range(5):  # Предполагаем, что есть 5 чанков ответа
+        yield f"Chunk {i+1} of answer for '{question}' based on '{text}'\n"
+        time.sleep(1)  # Имитация задержки в вычислениях
 
 
 def save_message_to_chat_history(user_id, file_id, message):
@@ -54,7 +57,15 @@ def get_chat():
 
 @app.route('/')
 def index():
-    return render_template('/index.html')
+    user_id = request.cookies.get('user_id')
+    if not user_id:
+        user_id = str(uuid.uuid4())
+        response = make_response(f"Your user ID is {user_id}.")
+        response.set_cookie('user_id', user_id)
+        return response
+    else:
+        return f"Your user ID is {user_id}."
+
 
 
 # Функция для проверки разрешенного расширения файла
@@ -118,7 +129,7 @@ def upload_via_link():
 
 
 
-@app.route('/ask-question', methods=['POST'])
+@app.route('/ask-question', methods=['GET'])
 def ask_question():
     user_id = request.args.get('user_id')
     file_id = request.args.get('file_id')
@@ -140,12 +151,19 @@ def ask_question():
         doc.close()
         save_message_to_chat_history(user_id, file_id, {"role": "system", "content": "Answer questions based on this document: \n" + text}) #TODO: refine prompt
 
+    def generate():  # Создаем генератор для потоковой передачи
+        response = ""
+        for chunk in some_llm_function(question, chat_history, file_id):
+            response += chunk
+            yield chunk  # Yield the LLM function output chunk by chunk
+        save_message_to_chat_history(user_id, file_id, {"role": "assistant", "content": response})
+
     # Используем LLM для ответа на вопрос, основываясь на тексте
     chat_history = get_chat_history(user_id, file_id)
     answer = some_llm_function(question, chat_history, file_id)  # Замените на вызов вашей LLM функции
     save_message_to_chat_history(user_id, file_id, {"role": "user", "content": question})
-    save_message_to_chat_history(user_id, file_id, {"role": "assistant", "content": answer})
-    return jsonify(answer=answer)
+    return Response(generate(), content_type='text/plain')  # Используем Response для стриминга ответа
+
 
 
 @app.route('/check_status')

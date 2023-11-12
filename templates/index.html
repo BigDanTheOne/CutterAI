@@ -1,1 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Загрузка файла и задавание вопросов</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
 
+#response-container {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+}
+</style>
+</head>
+<body>
+    <h1>Загрузите ваш файл</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="file" name="file" required><br><br>
+        <input type="submit" value="Загрузить файл">
+    </form>
+
+    <h2>Задайте вопрос по вашему файлу</h2>
+    <form id="question-form">
+        <label for="question">Вопрос:</label><br>
+        <input type="text" id="question" name="question" required><br><br>
+        <input type="submit" value="Отправить вопрос">
+    </form>
+
+    <div id="response-container">
+        <p><strong>Ответы:</strong></p>
+        <pre id="response"></pre>
+    </div>
+
+    <script>
+    document.getElementById('upload-form').onsubmit = function(event) {
+        event.preventDefault(); // Предотвращение стандартной отправки формы
+        var fileField = document.getElementById('file');
+
+        // Создание нового объекта FormData
+        var formData = new FormData();
+        formData.append('file', fileField.files[0]);
+
+        // Отправка запроса на загрузку файла
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            alert("Файл успешно загружен: " + data.filename);
+            // Сохраняем имя загруженного файла в скрытое поле, чтобы использовать его при задании вопросов
+            var hiddenInput = document.createElement("input");
+            hiddenInput.setAttribute("type", "hidden");
+            hiddenInput.setAttribute("name", "filename");
+            hiddenInput.setAttribute("value", data.filename);
+            document.getElementById('question-form').appendChild(hiddenInput);
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки файла:', error);
+        });
+    };
+
+    document.getElementById('question-form').onsubmit = function(event) {
+        event.preventDefault(); // Предотвращение стандартной отправки формы
+        var questionField = document.getElementById('question');
+        var filenameField = document.querySelector('input[name="filename"]');
+
+        if(filenameField) {
+            fetch('/ask-question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    question: questionField.value,
+                    filename: filenameField.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('response').textContent = data.answer;
+            })
+            .catch(error => {
+                console.error('Ошибка при отправке вопроса:', error);
+            });
+        } else {
+            alert("Пожалуйста, сначала загрузите файл.");
+        }
+    };
+    </script>
+</body>
+</html>
