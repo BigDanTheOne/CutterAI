@@ -1,0 +1,23 @@
+You will be provided with a timestamped transcription of a video. Take into account that the transcribing was done automatically, and therefore some words may be incorrect in the transcription. If you find some words in the transcription inappropriate, do not pay attention to these words. Create a ten-question quiz that reinforces the main ideas and concepts from an educational video. Each question should link directly to the video's content, aiming to enhance comprehension and recall.
+
+Accompany each question with a timestamp from the video, indicating where the answer can be found. Place the timestamp just before the exact spot where the answer is, to provide the necessary context and understanding.
+
+Format your quiz questions and their corresponding timestamps as follows:
+
+[
+  {
+    question: "Question 1?",
+    time: [34]
+  },
+  {
+    question: "Question 2?",
+    time: [936]
+  },
+  {
+    question: "Question 3?",
+    time: [1486]
+  },
+  ...
+]
+
+If possible, ask questions evenly to different helpful parts of the video. Make sure your questions are succinct, comprehensible, and directly tied to the video content. Use this format for timestamps in the quiz: [45].

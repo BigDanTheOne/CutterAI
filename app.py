@@ -8,6 +8,9 @@ import json
 from werkzeug.utils import secure_filename
 import requests
 import time
+from utiles.summary import text_to_summary_in_parts, ask_question_gpt
+from youtube_transcript_api import YouTubeTranscriptApi
+
 
 # Настройка подключения к Redis
 redis_host = "localhost"  # или адрес удаленного сервера Redis
@@ -18,19 +21,10 @@ r = redis.StrictRedis(host=redis_host, port=redis_port, password=redis_password,
 app = Flask(__name__)
 
 
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_VIDEO'] = ''
 app.config['UPLOAD_FOLDER'] = 'uploads/'  # Папка для сохранения файлов
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'mp4', 'mp3', 'wav', 'jpg', 'jpeg', 'png', 'gif'}  # Разрешенные расширения
 PDFS_DIR = 'saved_pdf'
-
-
-def some_llm_function(question, text):  # Это симуляция вашей LLM функции
-    # Допустим, функция выдает чанки ответа с задержкой
-    for i in range(5):  # Предполагаем, что есть 5 чанков ответа
-        yield f"Chunk {i+1} of answer for '{question}' based on '{text}'\n"
-        time.sleep(1)  # Имитация задержки в вычислениях
 
 
 def save_message_to_chat_history(user_id, file_id, message):
@@ -39,7 +33,7 @@ def save_message_to_chat_history(user_id, file_id, message):
 
 
 def get_chat_history(user_id, file_id):
-    chat_id = f"chat_{user_id}_{file_id}"  # Уникальный ID для чата
+    chat_id = f"chat:{user_id}:{file_id}"  # Уникальный ID для чата
     if r.exists(chat_id):
         messages = r.lrange(chat_id, 0, -1)  # Получаем все сообщения из списка Redis
         return [json.loads(message) for message in messages]  # Десериализуем каждое сообщение
@@ -96,37 +90,23 @@ def upload_file():
 
     return jsonify(error="File type not allowed"), 400
 
+def get_youtube_subtitles(link):
+    VIDEO_ID = link.split("watch?v=")[1].split('&')[0]
+    return YouTubeTranscriptApi.get_transcript(VIDEO_ID)
 
-@app.route('/upload_via_link', methods=['POST'])
-def upload_via_link():
+
+@app.route('/upload-youtube', methods=['POST'])
+def upload_youtube():
     # Проверяем, есть ли файл в запросе
-    url = request.json.get('url')  # Получаем URL из тела запроса
-    if not url:
-        return jsonify(error="No URL provided"), 400
-
-    # Отправляем HTTP запрос на получение файла
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Проверяем, что запрос выполнен успешно
-    except requests.HTTPError as http_err:
-        return jsonify(error=f"HTTP error occurred: {http_err}"), 400
-    except Exception as err:
-        return jsonify(error=f"An error occurred: {err}"), 400
-
-        # Получаем имя файла из URL
-    filename = url.rsplit('/', 1)[-1]
-    # Генерируем уникальное имя файла, сохраняя исходное расширение
-    extension = filename.rsplit('.', 1)[-1] if '.' in filename else ''
+    url = request.json.get('url')
+    subs = get_youtube_subtitles(url)
+    combined_string = ' '.join([f"{d['text']} ({d['start']} - {d['start'] + d['duration']})" for d in subs])
     unique_file_id = uuid.uuid4()
-    unique_filename = f"{unique_file_id}.{extension}" if extension else str(unique_file_id)
-
-    # Сохраняем файл
+    unique_filename = f"{unique_file_id}.txt"
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-    with open(file_path, 'wb') as f:
-        f.write(response.content)
-
-    return jsonify(message="File downloaded and saved successfully", filename=unique_file_id), 200
-
+    with open(file_path, 'w') as f:
+        f.write(combined_string)
+    return jsonify(message="File uploaded successfully", filename=unique_file_id), 200
 
 
 @app.route('/ask-question', methods=['GET'])
@@ -137,31 +117,71 @@ def ask_question():
 
 
     if get_chat_history(user_id, file_id) is None:
-
-        filepath = os.path.join(PDFS_DIR, str(file_id) + '.pdf')
-        if not os.path.exists(filepath):
-            return jsonify({"error": "File not found"}), 404
-
-        # Открываем указанный PDF-файл
-        doc = fitz.open(filepath)
-        # Читаем текст из PDF
         text = ""
-        for page in doc:
-            text += page.get_text()
-        doc.close()
-        save_message_to_chat_history(user_id, file_id, {"role": "system", "content": "Answer questions based on this document: \n" + text}) #TODO: refine prompt
+        if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], str(file_id) + '.pdf')):
+            # Открываем указанный PDF-файл
+            doc = fitz.open(app.config['UPLOAD_FOLDER'], str(file_id) + '.pdf')
+            # Читаем текст из PDF
+            for page in doc:
+                text += page.get_text()
+            doc.close()
+            save_message_to_chat_history(user_id, file_id, {"role": "system", "content": "Answer questions based on this document: \n" + text})
+        elif os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], str(file_id) + '.txt')):
+            with open(os.path.join(app.  config['UPLOAD_FOLDER'], str(file_id) + '.txt'), 'r') as file:
+                text += file.read()
+            save_message_to_chat_history(user_id, file_id, {"role": "system", "content": "Answer questions based on this document: \n" + text})
 
-    def generate():  # Создаем генератор для потоковой передачи
-        response = ""
-        for chunk in some_llm_function(question, chat_history, file_id):
-            response += chunk
-            yield chunk  # Yield the LLM function output chunk by chunk
-        save_message_to_chat_history(user_id, file_id, {"role": "assistant", "content": response})
+        else:
+            return jsonify({"error": "File not found"}), 404
 
     # Используем LLM для ответа на вопрос, основываясь на тексте
     chat_history = get_chat_history(user_id, file_id)
-    answer = some_llm_function(question, chat_history, file_id)  # Замените на вызов вашей LLM функции
     save_message_to_chat_history(user_id, file_id, {"role": "user", "content": question})
+    chat_history = get_chat_history(user_id, file_id)
+
+
+    def generate():  # Создаем генератор для потоковой передачи
+        collected_messages = []
+        for chunk in ask_question_gpt(chat_history):
+            chunk_message = chunk.choices[0].delta.content # extract the message
+            if chunk_message:
+                collected_messages.append(chunk_message)  # save the message
+            elif chunk_message is None and len(full_reply_content) != 0:
+                save_message_to_chat_history(user_id, file_id, {"role": "assistant",
+                        "content": '' if len(collected_messages) == 0 else ''.join([m for m in collected_messages])})
+            full_reply_content = '' if len(collected_messages) == 0 else ''.join([m for m in collected_messages])
+            yield full_reply_content
+
+    return Response(generate(), content_type='text/plain')  # Используем Response для стриминга ответа
+
+
+
+
+@app.route('/summarize', methods=['GET'])
+def summarize():
+    file_id = request.args.get('file_id')
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], str(file_id) + '.pdf')
+    if not os.path.exists(filepath):
+        return jsonify({"error": "File not found"}), 404
+
+    # Открываем указанный PDF-файл
+    doc = fitz.open(filepath)
+    # Читаем текст из PDF
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    doc.close()
+
+    def generate():  # Создаем генератор для потоковой передачи
+        collected_messages = []
+        for chunk in text_to_summary_in_parts(text):
+            chunk_message = chunk.choices[0].delta.content # extract the message
+            if chunk_message:
+                collected_messages.append(chunk_message)  # save the message
+            full_reply_content = '' if len(collected_messages) == 0 else ''.join([m for m in collected_messages])
+            yield full_reply_content
+
     return Response(generate(), content_type='text/plain')  # Используем Response для стриминга ответа
 
 
