@@ -4,7 +4,7 @@ import openai
 def text_to_summary(content):
   client = OpenAI(api_key='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')
 
-  with open('utiles/promt.txt') as f:
+  with open('utiles/summary_promt.txt') as f:
       promt = "".join(f.readlines())
 
   response = client.chat.completions.create(
@@ -22,7 +22,7 @@ def text_to_summary(content):
 def text_to_summary_in_parts(content):
   client = OpenAI(api_key='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')
 
-  with open('utiles/promt.txt') as f:
+  with open('utiles/summary_promt.txt') as f:
     promt = "".join(f.readlines())
 
   response = client.chat.completions.create(
@@ -40,7 +40,7 @@ def text_to_summary_in_parts(content):
 def ask_question_gpt(chat_history):
   client = OpenAI(api_key='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')
 
-  with open('utiles/promt.txt') as f:
+  with open('utiles/summary_promt.txt') as f:
     promt = "".join(f.readlines())
 
   response = client.chat.completions.create(
