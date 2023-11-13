@@ -91,13 +91,16 @@ def youtube_to_text(link):
         subtitles = get_youtube_subtitles(link)
     except():
         pass
+    #
+    # try:
+    #     subtitles = generate_youtube_subtitles(link, data)
+    # except():
+    #     pass
 
-    try:
-        subtitles = generate_youtube_subtitles(link, data)
-    except():
-        pass
-
-    return subtitles_to_text(subtitles)
+    if (subtitles.empty()):
+        return None
+    else:
+        return subtitles_to_text(subtitles)
 
 
 
