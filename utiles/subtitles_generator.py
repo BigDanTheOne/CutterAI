@@ -52,8 +52,8 @@ def generate_transcriber():
     return pipe
 def generate_youtube_subtitles(url, data):
 
-    if data.transcriber is None:
-        data.transcriber = generate_transcriber()
+    if data["transcriber"] is None:
+        data["transcriber"] = generate_transcriber()
 
     pipe = data.transcriber
     yt = YouTube(url)
