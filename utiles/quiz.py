@@ -1,8 +1,9 @@
 from openai import OpenAI
 import openai
+from server_data.api_keys import openai_api
 
 def yt_text_to_quiz(content):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key=openai_api)
 
   with open('utiles/quiz_yt_promt.txt') as f:
       promt = "".join(f.readlines())
@@ -20,7 +21,7 @@ def yt_text_to_quiz(content):
 
 
 def doc_text_to_quiz(content):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key=openai_api)
 
   with open('utiles/quiz_promt.txt') as f:
       promt = "".join(f.readlines())

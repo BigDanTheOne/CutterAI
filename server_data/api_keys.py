@@ -1,0 +1,1 @@
+openai_api = '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'

@@ -1,8 +1,9 @@
 from openai import OpenAI
 import openai
+from server_data.api_keys import openai_api
 
 def text_to_summary(content):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key=openai_api)
 
   with open('utiles/summary_promt.txt') as f:
       promt = "".join(f.readlines())
@@ -20,7 +21,7 @@ def text_to_summary(content):
 
 
 def text_to_summary_in_parts(content):
-  client = OpenAI(api_key='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')
+  client = OpenAI(api_key=openai_api)
 
   with open('utiles/summary_promt.txt') as f:
     promt = "".join(f.readlines())
